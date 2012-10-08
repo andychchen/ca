@@ -23,6 +23,7 @@
 
         String empName = (String) session.getAttribute("empName");
         String empRole = (String) session.getAttribute("empRole");
+        String empId = (String) session.getAttribute("empId");
         if (empRole == null || empRole.trim().length() == 0) {
             empRole = "USER";
         }
@@ -215,33 +216,81 @@
                             <c:set var="byMonth" value="${param.byMonth}"/>
 
                             <c:if test="${empty param.byYear}">
+
+                               <% if ( empRole.equals("ADMIN")) { %>
                                 <sql:query var="paymentSql" dataSource="${CA}">
                                     select sum( amount ) total,  pt.NAME Payment_type from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where (th.ORIGINAL_HEAD_ID is null or th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date = ? and tp.PAYMENT_TYPE=pt.ID group by pt.NAME order by pt.NAME
                                     <sql:param value="${byDate}"/>
                                 </sql:query>
+                                <% } else { %>
+                                <sql:query var="paymentSql" dataSource="${CA}">
+                                    select sum( amount ) total,  pt.NAME Payment_type from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where th.USER_ID = ? and (th.ORIGINAL_HEAD_ID is null or th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date = ? and tp.PAYMENT_TYPE=pt.ID group by pt.NAME order by pt.NAME
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                </sql:query>
 
+                                <% } %>
+
+                               <% if ( empRole.equals("ADMIN")) { %>
                                 <sql:query var="returnPaymentSql" dataSource="${CA}">
                                     select sum( amount ) total,  pt.NAME Payment_type from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where (th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date = ? and tp.PAYMENT_TYPE=pt.ID group by pt.NAME order by pt.NAME
                                     <sql:param value="${byDate}"/>
                                 </sql:query>
+                                <% } else { %>
+                                <sql:query var="returnPaymentSql" dataSource="${CA}">
+                                    select sum( amount ) total,  pt.NAME Payment_type from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where th.USER_ID = ? and (th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date = ? and tp.PAYMENT_TYPE=pt.ID group by pt.NAME order by pt.NAME
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                </sql:query>
 
+                                <% } %>
+
+                                <% if ( empRole.equals("ADMIN")) { %>
                                 <sql:query var="bottleSql" dataSource="${CA}">
                                     select sum(bottle_refund) total, 'Bottle Refund' Payment_Type from CA.TRAN_HEAD th where th.ORIGINAL_HEAD_ID is null and (th.is_training_mode!='Y' or th.is_training_mode is null ) and tran_date = ?
                                     <sql:param value="${byDate}"/>
                                 </sql:query>
+                                <% } else { %>
+                                <sql:query var="bottleSql" dataSource="${CA}">
+                                    select sum(bottle_refund) total, 'Bottle Refund' Payment_Type from CA.TRAN_HEAD th where th.USER_ID = ? and th.ORIGINAL_HEAD_ID is null and (th.is_training_mode!='Y' or th.is_training_mode is null ) and tran_date = ?
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                </sql:query>
+                                <% } %>
 
 
+                                <% if ( empRole.equals("ADMIN")) { %>
                                 <sql:query var="grossSql" dataSource="${CA}">
                                     select sum( amount ) total, 'Gross Income' Payment_type from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where (th.ORIGINAL_HEAD_ID is null or th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date = ? and tp.PAYMENT_TYPE=pt.ID and pt.NAME!='Gift Certificate'
                                     <sql:param value="${byDate}"/>
                                 </sql:query>
+                                <% } else { %>
+                                <sql:query var="grossSql" dataSource="${CA}">
+                                    select sum( amount ) total, 'Gross Income' Payment_type from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where th.USER_ID = ? and (th.ORIGINAL_HEAD_ID is null or th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date = ? and tp.PAYMENT_TYPE=pt.ID and pt.NAME!='Gift Certificate'
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                </sql:query>
+                                <% } %>
+
+                                <% if ( empRole.equals("ADMIN")) { %>
                                 <sql:query var="netSql" dataSource="${CA}">
                                     select temp.total-(select sum( Line_Tax_Amt ) from CA.TRAN_HEAD where (ORIGINAL_HEAD_ID is null) and (IS_TRAINING_MODE is null or IS_TRAINING_MODE!='Y') and tran_date = ? ) + (select CASE WHEN sum( Line_Tax_Amt ) is null THEN 0 ELSE sum( Line_Tax_Amt ) END from CA.TRAN_HEAD where (IS_FOR_RETURNED='Y') and (IS_TRAINING_MODE is null or IS_TRAINING_MODE!='Y') and tran_date = ? ) total, 'Net Income' Payment_type from ( select sum( amount ) total from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where (th.ORIGINAL_HEAD_ID is null or th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date=? and tp.PAYMENT_TYPE=pt.ID and pt.NAME!='Gift Certificate' ) as temp
                                     <sql:param value="${byDate}"/>
                                     <sql:param value="${byDate}"/>
                                     <sql:param value="${byDate}"/>
                                 </sql:query>
-
+                                <% } else { %>
+                                <sql:query var="netSql" dataSource="${CA}">
+                                    select temp.total-(select sum( Line_Tax_Amt ) from CA.TRAN_HEAD where USER_ID = ? and (ORIGINAL_HEAD_ID is null) and (IS_TRAINING_MODE is null or IS_TRAINING_MODE!='Y') and tran_date = ? ) + (select CASE WHEN sum( Line_Tax_Amt ) is null THEN 0 ELSE sum( Line_Tax_Amt ) END from CA.TRAN_HEAD where USER_ID = ? and (IS_FOR_RETURNED='Y') and (IS_TRAINING_MODE is null or IS_TRAINING_MODE!='Y') and tran_date = ? ) total, 'Net Income' Payment_type from ( select sum( amount ) total from CA.TRAN_PAYMENT tp, CA.PAYMENT_TYPE pt, CA.TRAN_HEAD th where th.USER_ID = ? and (th.ORIGINAL_HEAD_ID is null or th.IS_FOR_RETURNED='Y') and (th.IS_TRAINING_MODE is null or th.IS_TRAINING_MODE!='Y') and th.TRAN_HEAD_ID=tp.TRAN_HEAD_ID and pay_date=? and tp.PAYMENT_TYPE=pt.ID and pt.NAME!='Gift Certificate' ) as temp
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                </sql:query>
+                                <% } %>
+                                <% if ( empRole.equals("ADMIN")) { %>
                                 <sql:query var="gstTaxSql" dataSource="${CA}">
                                     select cast( ( ( select CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST' and th.ORIGINAL_HEAD_ID is null and th.TRAN_DATE=?) + ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 5/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST & PST' and th.ORIGINAL_HEAD_ID is null and th.TRAN_DATE=?) - ( select CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST' and th.IS_FOR_RETURNED='Y' and th.TRAN_DATE=? ) - ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 5/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST & PST' and th.IS_FOR_RETURNED='Y' and th.TRAN_DATE=?) )+0.005 as decimal (15,2)) total , 'GST Tax' PAYMENT_TYPE from SYSIBM.SYSDUMMY1
                                     <sql:param value="${byDate}"/>
@@ -268,6 +317,41 @@
                                     <sql:param value="${byDate}"/>
                                     <sql:param value="${byDate}"/>
                                 </sql:query>
+                                <% } else { %>
+
+                                <sql:query var="gstTaxSql" dataSource="${CA}">
+                                    select cast( ( ( select CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST' and th.ORIGINAL_HEAD_ID is null and th.TRAN_DATE=?) + ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 5/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST & PST' and th.ORIGINAL_HEAD_ID is null and th.TRAN_DATE=?) - ( select CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST' and th.IS_FOR_RETURNED='Y' and th.TRAN_DATE=? ) - ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 5/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST & PST' and th.IS_FOR_RETURNED='Y' and th.TRAN_DATE=?) )+0.005 as decimal (15,2)) total , 'GST Tax' PAYMENT_TYPE from SYSIBM.SYSDUMMY1
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                </sql:query>
+                                <sql:query var="pstTaxSql" dataSource="${CA}">
+                                    select cast( ( ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 8/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST & PST' and th.ORIGINAL_HEAD_ID is null and th.TRAN_DATE=?) - ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 8/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='GST & PST' and th.IS_FOR_RETURNED='Y' and th.TRAN_DATE=?) )+0.005 as decimal (15,2)) total , 'PST Tax' PAYMENT_TYPE from SYSIBM.SYSDUMMY1
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/>
+                                    <sql:param value="${byDate}"/>
+                                </sql:query>
+
+                                <sql:query var="hstTaxSql" dataSource="${CA}">
+                                    select cast( ( ( select CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='HST' and th.ORIGINAL_HEAD_ID is null and th.TRAN_DATE=?) + ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 5/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='XXX' and th.ORIGINAL_HEAD_ID is null and th.TRAN_DATE=?) - ( select CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='HST' and th.IS_FOR_RETURNED='Y' and th.TRAN_DATE=? ) - ( select (CASE WHEN sum(td.SUB_TAX) is null THEN 0 ELSE sum(td.SUB_TAX) END)* 5/13 from CA.TRAN_DETAIL td, CA.TRAN_HEAD th, CA.tax tax where th.USER_ID = ? and (th.is_training_mode!='Y' or th.is_training_mode is null ) and th.TRAN_HEAD_ID=td.TRAN_HEAD_ID and tax.TAX_ID=td.TAX and tax.NAME='XXX' and th.IS_FOR_RETURNED='Y' and th.TRAN_DATE=?) )+0.005 as decimal (15,2)) total , 'HST Tax' PAYMENT_TYPE from SYSIBM.SYSDUMMY1
+                                    <sql:param value="${empId}"/><sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/><sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/><sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/><sql:param value="${byDate}"/>
+                                </sql:query>
+
+                                <sql:query var="discountSql" dataSource="${CA}">
+                                    select ((select CASE WHEN sum(th.LINE_DISCOUNT_AMT) is null THEN 0 ELSE sum(th.LINE_DISCOUNT_AMT) END from CA.TRAN_HEAD th where th.USER_ID = ? and th.ORIGINAL_HEAD_ID is null and (th.is_training_mode!='Y' or th.is_training_mode is null ) and tran_date = ?) - (select CASE WHEN sum(th.LINE_DISCOUNT_AMT) is null THEN 0 ELSE sum(th.LINE_DISCOUNT_AMT) END from CA.TRAN_HEAD th where th.USER_ID = ? and th.IS_FOR_RETURNED='Y' and (th.is_training_mode!='Y' or th.is_training_mode is null ) and tran_date = ?)) total, 'Discount' PAYMENT_TYPE from SYSIBM.SYSDUMMY1
+                                    <sql:param value="${empId}"/><sql:param value="${byDate}"/>
+                                    <sql:param value="${empId}"/><sql:param value="${byDate}"/>
+                                </sql:query>
+                                <% } %>
                                 <h3>Payment in Date ${param.byDate}</h3>
                             </c:if>
 
