@@ -171,7 +171,7 @@
                                             <c:if test="${empRole == 'ADMIN'}">
                                                 <c:set var="selectedId" value="${param.userSelect}"></c:set>
                                             </c:if>
-                                            ===<c:out value="${empId}" />===<c:out value="${selectedId}" />+++++++++++++
+                                            
                                             <select id="userSelect" name="userSelect" <% if (!empRole.equals("ADMIN")) {%> disabled <% }%> >
 
                                                 <option value="all">All</option>
@@ -184,7 +184,7 @@
                                             <c:if test="${ empty selectedName}">
                                                 <c:set var="selectedName" value="All"></c:set>
                                             </c:if>
-                                            ===<c:out value="${selectedName}" />===
+                                            
                                     </td></tr>
 
                                     <tr><td>Select the Date to see Payment<br>Date ( YYYY-MM-DD ):
