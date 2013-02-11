@@ -5,6 +5,7 @@
 package jpa.entities.extn;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -277,12 +278,18 @@ public class TranHeadExtn extends TranHead {
         return total;
     }
 
+    protected BigDecimal canadaPennyRound(BigDecimal in)
+    {
+        //return in.multiply(new BigDecimal(2)).divide(new BigDecimal(10)).round(new MathContext(2)).multiply(new BigDecimal(10)).divide(new BigDecimal(2));
+        return in.multiply(new BigDecimal(2)).setScale(1, BigDecimal.ROUND_HALF_UP).divide(new BigDecimal(2));
+    }
+
     public BigDecimal getTotal() {
-        return getLineTotalAmt().add(getLineTaxAmt());
+        return canadaPennyRound(getLineTotalAmt().add(getLineTaxAmt())).setScale(2);
     }
 
     public BigDecimal getBalance() {
-        return getTotal().subtract(getBottleRefund()).subtract(getPaymentTotal());
+        return getTotal().subtract(getBottleRefund()).subtract(getPaymentTotal()).setScale(2);
     }
 
     public BigDecimal getPayAmountByPayType(Integer id) {
